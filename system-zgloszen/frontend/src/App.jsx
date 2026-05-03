@@ -31,7 +31,7 @@ function App() {
 
     return (
         <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-            <h1>System Zg³oszeñ Serwisowych</h1>
+            <h1>System zg³oszeñ serwisowych</h1>
 
             <div style={{ border: '1px solid #ccc', padding: '20px', marginBottom: '20px' }}>
                 <h2>Dodaj nowe zg³oszenie</h2>
@@ -53,7 +53,7 @@ function App() {
                 </form>
             </div>
 
-            <h2>Lista Zg³oszeñ</h2>
+            <h2>Lista zg³oszeñ</h2>
             <ul>
                 {zgloszenia.map(z => (
                     <li key={z.id} style={{ marginBottom: '10px' }}>
