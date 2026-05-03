@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+Ôªøimport { useState, useEffect } from 'react';
 
 function App() {
     const [zgloszenia, setZgloszenia] = useState([]);
@@ -31,10 +31,10 @@ function App() {
 
     return (
         <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-            <h1>System zg≥oszeÒ serwisowych</h1>
+            <h1>System zg≈Çosze≈Ñ serwisowych</h1>
 
             <div style={{ border: '1px solid #ccc', padding: '20px', marginBottom: '20px' }}>
-                <h2>Dodaj nowe zg≥oszenie</h2>
+                <h2>Dodaj nowe zg≈Çoszenie</h2>
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '400px' }}>
                     <input
                         type="text" placeholder="Temat" required
@@ -46,14 +46,14 @@ function App() {
                     />
                     <select value={form.priorytet} onChange={(e) => setForm({ ...form, priorytet: e.target.value })}>
                         <option value="Niski">Niski</option>
-                        <option value="åredni">åredni</option>
+                        <option value="≈öredni">≈öredni</option>
                         <option value="Wysoki">Wysoki</option>
                     </select>
-                    <button type="submit">Zg≥oú problem</button>
+                    <button type="submit">Zg≈Ço≈õ problem</button>
                 </form>
             </div>
 
-            <h2>Lista zg≥oszeÒ</h2>
+            <h2>Lista zg≈Çosze≈Ñ</h2>
             <ul>
                 {zgloszenia.map(z => (
                     <li key={z.id} style={{ marginBottom: '10px' }}>
