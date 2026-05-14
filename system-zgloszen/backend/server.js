@@ -30,7 +30,8 @@ db.serialize(() => {
         opis TEXT,
         statusZgloszenia TEXT,
         priorytet TEXT,
-        dataUtworzenia DATETIME DEFAULT CURRENT_TIMESTAMP
+        dataUtworzenia DATETIME DEFAULT CURRENT_TIMESTAMP,
+        klient_id INTEGER
     )`);
 });
 
@@ -71,16 +72,25 @@ app.post('/api/login', (req, res) => {
 });
 
 app.get('/api/zgloszenia', (req, res) => {
-    db.all(`SELECT * FROM Zgloszenie`, [], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ data: rows });
-    });
+    const { userId, rola } = req.query;
+
+    if (rola === 'Klient') {
+        db.all(`SELECT * FROM Zgloszenie WHERE klient_id = ?`, [userId], (err, rows) => {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ data: rows });
+        });
+    } else {
+        db.all(`SELECT * FROM Zgloszenie`, [], (err, rows) => {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ data: rows });
+        });
+    }
 });
 
 app.post('/api/zgloszenia', (req, res) => {
-    const { temat, opis, priorytet } = req.body;
-    db.run(`INSERT INTO Zgloszenie (temat, opis, statusZgloszenia, priorytet) VALUES (?, ?, ?, ?)`, 
-        [temat, opis, 'Nowe', priorytet], 
+    const { temat, opis, priorytet, klient_id } = req.body;
+    db.run(`INSERT INTO Zgloszenie (temat, opis, statusZgloszenia, priorytet, klient_id) VALUES (?, ?, ?, ?, ?)`, 
+        [temat, opis, 'Nowe', priorytet, klient_id], 
         function(err) {
             if (err) return res.status(500).json({ error: err.message });
             res.json({ id: this.lastID, message: 'Dodano zgłoszenie' });

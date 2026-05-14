@@ -52,27 +52,28 @@ function App() {
     };
 
     
-    const fetchZgloszenia = () => {
-        fetch('http://localhost:3001/api/zgloszenia')
-            .then(res => res.json())
-            .then(data => setZgloszenia(data.data));
-    };
+const fetchZgloszenia = () => {
+    if (!zalogowanyUzytkownik) return;
+    fetch(`http://localhost:3001/api/zgloszenia?userId=${zalogowanyUzytkownik.id}&rola=${zalogowanyUzytkownik.rola}`)
+      .then(res => res.json())
+      .then(data => setZgloszenia(data.data));
+  };
 
     useEffect(() => {
         if (zalogowanyUzytkownik) fetchZgloszenia();
     }, [zalogowanyUzytkownik]);
 
-    const handleZgloszenieSubmit = (e) => {
-        e.preventDefault();
-        fetch('http://localhost:3001/api/zgloszenia', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(form)
-        }).then(() => {
-            setForm({ temat: '', opis: '', priorytet: 'Niski' });
-            fetchZgloszenia();
-        });
-    };
+const handleZgloszenieSubmit = (e) => {
+    e.preventDefault();
+    fetch('http://localhost:3001/api/zgloszenia', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...form, klient_id: zalogowanyUzytkownik.id }) 
+    }).then(() => {
+      setForm({ temat: '', opis: '', priorytet: 'Niski' });
+      fetchZgloszenia();
+    });
+  };
 
     
     if (!zalogowanyUzytkownik) {
