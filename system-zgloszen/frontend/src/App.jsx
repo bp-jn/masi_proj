@@ -78,21 +78,27 @@ function App() {
 
     if (!zalogowanyUzytkownik) {
         return (
-            <div style={{ padding: '20px', fontFamily: 'sans-serif', maxWidth: '400px', margin: '0 auto' }}>
-                <h1>{widokRejestracji ? 'Rejestracja' : 'Logowanie'}</h1>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+                <article style={{ width: '100%', maxWidth: '400px', margin: '0 20px' }}>
+                    <header>
+                        <h2 style={{ textAlign: 'center', margin: 0 }}>{widokRejestracji ? 'Rejestracja' : 'Logowanie'}</h2>
+                    </header>
+                    
+                    <form onSubmit={widokRejestracji ? handleRegister : handleLogin} style={{ margin: '20px 0' }}>
+                        {widokRejestracji && (
+                            <input type="text" placeholder="Imię i Nazwisko" required value={imieNazwisko} onChange={e => setImieNazwisko(e.target.value)} />
+                        )}
+                        <input type="email" placeholder="Email" required value={email} onChange={e => setEmail(e.target.value)} />
+                        <input type="password" placeholder="Hasło" required value={haslo} onChange={e => setHaslo(e.target.value)} />
+                        <button type="submit" style={{ width: '100%', marginBottom: 0 }}>{widokRejestracji ? 'Zarejestruj się' : 'Zaloguj się'}</button>
+                    </form>
 
-                <form onSubmit={widokRejestracji ? handleRegister : handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {widokRejestracji && (
-                        <input type="text" placeholder="Imię i Nazwisko" required value={imieNazwisko} onChange={e => setImieNazwisko(e.target.value)} />
-                    )}
-                    <input type="email" placeholder="Email" required value={email} onChange={e => setEmail(e.target.value)} />
-                    <input type="password" placeholder="Hasło" required value={haslo} onChange={e => setHaslo(e.target.value)} />
-                    <button type="submit">{widokRejestracji ? 'Zarejestruj się' : 'Zaloguj się'}</button>
-                </form>
-
-                <p style={{ marginTop: '20px', cursor: 'pointer', color: 'blue' }} onClick={() => setWidokRejestracji(!widokRejestracji)}>
-                    {widokRejestracji ? 'Masz już konto? Zaloguj się.' : 'Nie masz konta? Zarejestruj się.'}
-                </p>
+                    <footer style={{ textAlign: 'center' }}>
+                        <a href="#" onClick={(e) => { e.preventDefault(); setWidokRejestracji(!widokRejestracji); }} className="secondary">
+                            {widokRejestracji ? 'Masz już konto? Zaloguj się.' : 'Nie masz konta? Zarejestruj się.'}
+                        </a>
+                    </footer>
+                </article>
             </div>
         );
     }
@@ -109,46 +115,72 @@ function App() {
 
 
     return (
-        <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h1>Panel: {zalogowanyUzytkownik.imieNazwisko} ({zalogowanyUzytkownik.rola})</h1>
-                <button onClick={handleLogout}>Wyloguj</button>
-            </div>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
+            <nav style={{ marginBottom: '40px', borderBottom: '1px solid #333', paddingBottom: '10px' }}>
+                <ul>
+                    <li><h2 style={{ margin: 0 }}>Panel: {zalogowanyUzytkownik.imieNazwisko} ({zalogowanyUzytkownik.rola})</h2></li>
+                </ul>
+                <ul>
+                    <li><button className="secondary outline" style={{ margin: 0 }} onClick={handleLogout}>Wyloguj</button></li>
+                </ul>
+            </nav>
 
-            <div style={{ border: '1px solid #ccc', padding: '20px', marginBottom: '20px' }}>
-                <h2>Dodaj nowe zgłoszenie</h2>
-                <form onSubmit={handleZgloszenieSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '400px' }}>
-                    <input
-                        type="text" placeholder="Temat" required value={form.temat} onChange={(e) => setForm({ ...form, temat: e.target.value })}
-                    />
-                    <textarea
-                        placeholder="Opis problemu" required value={form.opis} onChange={(e) => setForm({ ...form, opis: e.target.value })}
-                    />
-                    <select value={form.priorytet} onChange={(e) => setForm({ ...form, priorytet: e.target.value })}>
-                        <option value="Niski">Niski</option>
-                        <option value="Średni">Średni</option>
-                        <option value="Wysoki">Wysoki</option>
-                    </select>
-                    <button type="submit">Zgłoś problem</button>
-                </form>
-            </div>
+            <div className="grid">
+                
+                <div>
+                    <article>
+                        <header>
+                            <h3 style={{ margin: 0 }}>Dodaj nowe zgłoszenie</h3>
+                        </header>
+                        <form onSubmit={handleZgloszenieSubmit} style={{ margin: 0 }}>
+                            <input type="text" placeholder="Temat" required value={form.temat} onChange={(e) => setForm({ ...form, temat: e.target.value })} />
+                            <textarea placeholder="Opis problemu" required value={form.opis} onChange={(e) => setForm({ ...form, opis: e.target.value })} />
+                            <select value={form.priorytet} onChange={(e) => setForm({ ...form, priorytet: e.target.value })}>
+                                <option value="Niski">Niski</option>
+                                <option value="Średni">Średni</option>
+                                <option value="Wysoki">Wysoki</option>
+                            </select>
+                            <button type="submit" style={{ marginBottom: 0 }}>Zgłoś problem</button>
+                        </form>
+                    </article>
+                </div>
 
-            <h2>Historia zgłoszeń</h2>
-            <ul>
-                {zgloszenia.map(z => (
-                    <li key={z.id} style={{ marginBottom: '10px', padding: '10px', border: '1px solid #eee' }}>
-                        <strong>[ID: {z.id}] {z.temat}</strong> - Status: <span style={{ color: 'red' }}>{z.statusZgloszenia}</span> (Priorytet: {z.priorytet})
-                        <p>{z.opis}</p>
+                <div>
+                    <article>
+                        <header>
+                            <h3 style={{ margin: 0 }}>Historia zgłoszeń</h3>
+                        </header>
+                        
+                        {zgloszenia.length === 0 ? (
+                            <p>Brak zgłoszeń w systemie.</p>
+                        ) : (
+                            zgloszenia.map(z => (
+                                <article key={z.id} style={{ marginBottom: '20px' }}>
+                                    <header style={{ padding: '10px 20px' }}>
+                                        <strong>[ID: {z.id}] {z.temat}</strong>
+                                    </header>
+                                    <div style={{ padding: '10px 20px' }}>
+                                        <p style={{ margin: 0 }}>{z.opis}</p>
+                                    </div>
+                                    <footer style={{ padding: '10px 20px' }}>
+                                        <small>
+                                            Status: <strong>{z.statusZgloszenia}</strong> | Priorytet: {z.priorytet}
+                                        </small>
+                                    </footer>
 
-                        {zalogowanyUzytkownik.rola !== 'Klient' && (
-                            <div style={{ marginTop: '10px', gap: '5px', display: 'flex' }}>
-                                <button onClick={() => handleZmienStatus(z.id, 'W toku')}>Podejmij (W toku)</button>
-                                <button onClick={() => handleZmienStatus(z.id, 'Rozwiązane')}>Oznacz jako Rozwiązane</button>
-                            </div>
+                                    {zalogowanyUzytkownik.rola !== 'Klient' && (
+                                        <div className="grid" style={{ marginTop: '10px', padding: '0 20px 20px 20px' }}>
+                                            <button onClick={() => handleZmienStatus(z.id, 'W toku')}>Podejmij</button>
+                                            <button className="secondary outline" onClick={() => handleZmienStatus(z.id, 'Rozwiązane')}>Zakończ</button>
+                                        </div>
+                                    )}
+                                </article>
+                            ))
                         )}
-                    </li>
-                ))}
-            </ul>
+                    </article>
+                </div>
+
+            </div>
         </div>
     );
 }
