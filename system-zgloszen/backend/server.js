@@ -1,4 +1,3 @@
-// backend/server.js
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const cors = require('cors');
@@ -31,7 +30,8 @@ db.serialize(() => {
         statusZgloszenia TEXT,
         priorytet TEXT,
         dataUtworzenia DATETIME DEFAULT CURRENT_TIMESTAMP,
-        klient_id INTEGER
+        klient_id INTEGER,
+        serwisant_id INTEGER
     )`);
 });
 
@@ -40,11 +40,11 @@ app.post('/api/register', async (req, res) => {
     try {
         const salt = await bcrypt.genSalt(10);
         const hasloHash = await bcrypt.hash(haslo, salt);
-        const rolaUzytkownika = rola || 'Klient'; 
+        const rolaUzytkownika = rola || 'Klient';
 
-        db.run(`INSERT INTO Uzytkownik (imieNazwisko, email, hasloHash, rola) VALUES (?, ?, ?, ?)`, 
-            [imieNazwisko, email, hasloHash, rolaUzytkownika], 
-            function(err) {
+        db.run(`INSERT INTO Uzytkownik (imieNazwisko, email, hasloHash, rola) VALUES (?, ?, ?, ?)`,
+            [imieNazwisko, email, hasloHash, rolaUzytkownika],
+            function (err) {
                 if (err) return res.status(400).json({ error: 'Konto z tym emailem już istnieje!' });
                 res.json({ message: 'Konto zostało utworzone. Możesz się zalogować!' });
             }
@@ -89,11 +89,23 @@ app.get('/api/zgloszenia', (req, res) => {
 
 app.post('/api/zgloszenia', (req, res) => {
     const { temat, opis, priorytet, klient_id } = req.body;
-    db.run(`INSERT INTO Zgloszenie (temat, opis, statusZgloszenia, priorytet, klient_id) VALUES (?, ?, ?, ?, ?)`, 
-        [temat, opis, 'Nowe', priorytet, klient_id], 
-        function(err) {
+    db.run(`INSERT INTO Zgloszenie (temat, opis, statusZgloszenia, priorytet, klient_id) VALUES (?, ?, ?, ?, ?)`,
+        [temat, opis, 'Nowe', priorytet, klient_id],
+        function (err) {
             if (err) return res.status(500).json({ error: err.message });
             res.json({ id: this.lastID, message: 'Dodano zgłoszenie' });
+        }
+    );
+});
+app.put('/api/zgloszenia/:id', (req, res) => {
+    const { statusZgloszenia, serwisant_id } = req.body;
+    const zgloszenieId = req.params.id;
+
+    db.run(`UPDATE Zgloszenie SET statusZgloszenia = ?, serwisant_id = ? WHERE id = ?`,
+        [statusZgloszenia, serwisant_id, zgloszenieId],
+        function (err) {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ message: 'Zaktualizowano status zgłoszenia' });
         }
     );
 });
