@@ -13,6 +13,7 @@ function App() {
     const [zgloszenia, setZgloszenia] = useState([]);
     const [form, setForm] = useState({ temat: '', opis: '', priorytet: 'Niski' });
 
+    const [uzytkownicy, setUzytkownicy] = useState([]);
 
     const handleLogin = (e) => {
         e.preventDefault();
@@ -38,7 +39,7 @@ function App() {
         fetch('http://localhost:3001/api/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ imieNazwisko, email, haslo, rola: 'Serwisant' })
+            body: JSON.stringify({ imieNazwisko, email, haslo, rola: 'Klient' })
         })
             .then(res => res.json())
             .then(data => {
@@ -59,9 +60,38 @@ function App() {
             .then(data => setZgloszenia(data.data));
     };
 
+
+    const fetchUzytkownicy = () => {
+        if (!zalogowanyUzytkownik || zalogowanyUzytkownik.rola !== 'Administrator') return;
+        fetch('http://localhost:3001/api/uzytkownicy')
+            .then(res => res.json())
+            .then(data => setUzytkownicy(data.data));
+    };
+
     useEffect(() => {
-        if (zalogowanyUzytkownik) fetchZgloszenia();
+        if (zalogowanyUzytkownik) {
+            fetchZgloszenia();
+            if (zalogowanyUzytkownik.rola === 'Administrator') {
+                fetchUzytkownicy();
+            }
+        }
     }, [zalogowanyUzytkownik]);
+
+    const handleZmienRole = (idUzytkownika, nowaRola) => {
+        fetch(`http://localhost:3001/api/uzytkownicy/${idUzytkownika}/rola`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rola: nowaRola })
+        }).then(() => fetchUzytkownicy());
+    };
+
+    const handleUsunKonto = (idUzytkownika) => {
+        if (window.confirm('Czy na pewno chcesz usunąć to konto?')) {
+            fetch(`http://localhost:3001/api/uzytkownicy/${idUzytkownika}`, {
+                method: 'DELETE'
+            }).then(() => fetchUzytkownicy());
+        }
+    };
 
     const handleZgloszenieSubmit = (e) => {
         e.preventDefault();
@@ -83,7 +113,7 @@ function App() {
                     <header>
                         <h2 style={{ textAlign: 'center', margin: 0 }}>{widokRejestracji ? 'Rejestracja' : 'Logowanie'}</h2>
                     </header>
-                    
+
                     <form onSubmit={widokRejestracji ? handleRegister : handleLogin} style={{ margin: '20px 0' }}>
                         {widokRejestracji && (
                             <input type="text" placeholder="Imię i Nazwisko" required value={imieNazwisko} onChange={e => setImieNazwisko(e.target.value)} />
@@ -126,7 +156,7 @@ function App() {
             </nav>
 
             <div className="grid">
-                
+
                 <div>
                     <article>
                         <header>
@@ -150,7 +180,7 @@ function App() {
                         <header>
                             <h3 style={{ margin: 0 }}>Historia zgłoszeń</h3>
                         </header>
-                        
+
                         {zgloszenia.length === 0 ? (
                             <p>Brak zgłoszeń w systemie.</p>
                         ) : (
@@ -181,6 +211,58 @@ function App() {
                 </div>
 
             </div>
+            {zalogowanyUzytkownik.rola === 'Administrator' && (
+                <div style={{ marginTop: '40px' }}>
+                    <article>
+                        <header>
+                            <h3 style={{ margin: 0 }}>Zarządzanie pracownikami i użytkownikami</h3>
+                        </header>
+                        <div className="overflow-auto">
+                            <table className="striped">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Imię i Nazwisko</th>
+                                        <th>Email</th>
+                                        <th>Rola</th>
+                                        <th>Akcje</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {uzytkownicy.map(u => (
+                                        <tr key={u.id}>
+                                            <td>{u.id}</td>
+                                            <td>{u.imieNazwisko}</td>
+                                            <td>{u.email}</td>
+                                            <td>
+                                                <select
+                                                    value={u.rola}
+                                                    onChange={(e) => handleZmienRole(u.id, e.target.value)}
+                                                    style={{ marginBottom: 0, padding: '5px' }}
+                                                >
+                                                    <option value="Klient">Klient</option>
+                                                    <option value="Serwisant">Serwisant</option>
+                                                    <option value="Administrator">Administrator</option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <button
+                                                    className="secondary outline"
+                                                    style={{ margin: 0, padding: '5px 10px' }}
+                                                    onClick={() => handleUsunKonto(u.id)}
+                                                    disabled={u.id === zalogowanyUzytkownik.id}
+                                                >
+                                                    Usuń
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </article>
+                </div>
+            )}
         </div>
     );
 }

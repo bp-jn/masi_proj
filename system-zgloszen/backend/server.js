@@ -110,6 +110,27 @@ app.put('/api/zgloszenia/:id', (req, res) => {
     );
 });
 
+app.get('/api/uzytkownicy', (req, res) => {
+    db.all(`SELECT id, imieNazwisko, email, rola FROM Uzytkownik`, [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ data: rows });
+    });
+});
+
+app.put('/api/uzytkownicy/:id/rola', (req, res) => {
+    const { rola } = req.body;
+    db.run(`UPDATE Uzytkownik SET rola = ? WHERE id = ?`, [rola, req.params.id], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Zaktualizowano rolę' });
+    });
+});
+
+app.delete('/api/uzytkownicy/:id', (req, res) => {
+    db.run(`DELETE FROM Uzytkownik WHERE id = ?`, [req.params.id], function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Usunięto konto' });
+    });
+});
 app.listen(port, () => {
     console.log(`Serwer API działa na porcie ${port}`);
 });
