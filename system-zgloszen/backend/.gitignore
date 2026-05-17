@@ -11,3 +11,5 @@ baza.sqlite-journal
 # Pliki systemowe
 .DS_Store
 Thumbs.db
+#foldery
+uploads

@@ -3,8 +3,30 @@ const sqlite3 = require('sqlite3').verbose();
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 
+const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
+
 const app = express();
 const port = 3001;
+
+if (!fs.existsSync('./uploads')) {
+    fs.mkdirSync('./uploads');
+}
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/');
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + '-' + file.originalname);
+    }
+});
+const upload = multer({ storage });
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+
 
 app.use(cors());
 app.use(express.json());
@@ -29,10 +51,45 @@ db.serialize(() => {
         opis TEXT,
         statusZgloszenia TEXT,
         priorytet TEXT,
+        kategoria TEXT,
+        zalacznik TEXT,
+        notatkaSerwisanta TEXT, 
         dataUtworzenia DATETIME DEFAULT CURRENT_TIMESTAMP,
         klient_id INTEGER,
         serwisant_id INTEGER
     )`);
+
+    db.get(`SELECT COUNT(*) AS count FROM Uzytkownik WHERE rola = 'Administrator'`, [], async (err, row) => {
+        if (err) {
+            console.error('Błąd podczas sprawdzania tabeli administratorów:', err.message);
+            return;
+        }
+
+        if (row.count === 0) {
+            try {
+                const domyslnyEmail = 'admin@admin.pl';
+                const domyslneHaslo = 'admin';
+                
+                const salt = await bcrypt.genSalt(10);
+                const hasloHash = await bcrypt.hash(domyslneHaslo, salt);
+
+                db.run(`INSERT INTO Uzytkownik (imieNazwisko, email, hasloHash, rola) VALUES (?, ?, ?, ?)`,
+                    ['Główny Administrator', domyslnyEmail, hasloHash, 'Administrator'],
+                    (insertErr) => {
+                        if (insertErr) {
+                            console.error('Nie udało się utworzyć konta administratora:', insertErr.message);
+                        } else {
+                            console.log(' BRAK ADMINISTRATORA W BAZIE! UTWORZONO KONTO:');
+                            console.log(` Email: ${domyslnyEmail}`);
+                            console.log(` Hasło: ${domyslneHaslo}`);
+                        }
+                    }
+                );
+            } catch (bcryptError) {
+                console.error('Błąd podczas hashowania hasła dla admina:', bcryptError);
+            }
+        }
+    });
 });
 
 app.post('/api/register', async (req, res) => {
@@ -75,22 +132,34 @@ app.get('/api/zgloszenia', (req, res) => {
     const { userId, rola } = req.query;
 
     if (rola === 'Klient') {
-        db.all(`SELECT * FROM Zgloszenie WHERE klient_id = ?`, [userId], (err, rows) => {
+        db.all(`
+            SELECT Zgloszenie.*, Uzytkownik.imieNazwisko AS klient_imieNazwisko 
+            FROM Zgloszenie
+            LEFT JOIN Uzytkownik ON Zgloszenie.klient_id = Uzytkownik.id
+            WHERE Zgloszenie.klient_id = ?
+        `, [userId], (err, rows) => {
             if (err) return res.status(500).json({ error: err.message });
             res.json({ data: rows });
         });
     } else {
-        db.all(`SELECT * FROM Zgloszenie`, [], (err, rows) => {
+        db.all(`
+            SELECT Zgloszenie.*, Uzytkownik.imieNazwisko AS klient_imieNazwisko 
+            FROM Zgloszenie
+            LEFT JOIN Uzytkownik ON Zgloszenie.klient_id = Uzytkownik.id
+        `, [], (err, rows) => {
             if (err) return res.status(500).json({ error: err.message });
             res.json({ data: rows });
         });
     }
 });
 
-app.post('/api/zgloszenia', (req, res) => {
-    const { temat, opis, priorytet, klient_id } = req.body;
-    db.run(`INSERT INTO Zgloszenie (temat, opis, statusZgloszenia, priorytet, klient_id) VALUES (?, ?, ?, ?, ?)`,
-        [temat, opis, 'Nowe', priorytet, klient_id],
+app.post('/api/zgloszenia', upload.single('zalacznik'), (req, res) => {
+    const { temat, opis, klient_id, kategoria } = req.body;
+    
+    const zalacznikUrl = req.file ? `/uploads/${req.file.filename}` : null;
+
+    db.run(`INSERT INTO Zgloszenie (temat, opis, statusZgloszenia, priorytet, klient_id, kategoria, zalacznik) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [temat, opis, 'Nowe', 'Niski', klient_id, kategoria, zalacznikUrl],
         function (err) {
             if (err) return res.status(500).json({ error: err.message });
             res.json({ id: this.lastID, message: 'Dodano zgłoszenie' });
@@ -98,16 +167,28 @@ app.post('/api/zgloszenia', (req, res) => {
     );
 });
 app.put('/api/zgloszenia/:id', (req, res) => {
-    const { statusZgloszenia, serwisant_id } = req.body;
+    const { statusZgloszenia, serwisant_id, priorytet, notatkaSerwisanta } = req.body;
     const zgloszenieId = req.params.id;
 
-    db.run(`UPDATE Zgloszenie SET statusZgloszenia = ?, serwisant_id = ? WHERE id = ?`,
-        [statusZgloszenia, serwisant_id, zgloszenieId],
-        function (err) {
-            if (err) return res.status(500).json({ error: err.message });
-            res.json({ message: 'Zaktualizowano status zgłoszenia' });
-        }
-    );
+    const updates = [];
+    const params = [];
+
+    if (priorytet) { updates.push('priorytet = ?'); params.push(priorytet); }
+    if (statusZgloszenia) { updates.push('statusZgloszenia = ?'); params.push(statusZgloszenia); }
+    if (serwisant_id !== undefined) { updates.push('serwisant_id = ?'); params.push(serwisant_id); }
+    if (notatkaSerwisanta !== undefined) { updates.push('notatkaSerwisanta = ?'); params.push(notatkaSerwisanta); }
+
+    if (updates.length === 0) {
+        return res.status(400).json({ error: 'Brak danych do aktualizacji' });
+    }
+
+    const query = `UPDATE Zgloszenie SET ${updates.join(', ')} WHERE id = ?`;
+    params.push(zgloszenieId);
+
+    db.run(query, params, function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Zaktualizowano zgłoszenie' });
+    });
 });
 
 app.get('/api/uzytkownicy', (req, res) => {
