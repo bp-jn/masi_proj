@@ -212,6 +212,36 @@ app.delete('/api/uzytkownicy/:id', (req, res) => {
         res.json({ message: 'Usunięto konto' });
     });
 });
+app.get('/api/raporty/zgloszenia', (req, res) => {
+    const { miesiac, rok } = req.query;
+
+    const queryStatusy = `
+        SELECT statusZgloszenia, COUNT(*) as ilosc 
+        FROM Zgloszenie 
+        WHERE strftime('%m', dataUtworzenia) = ? AND strftime('%Y', dataUtworzenia) = ?
+        GROUP BY statusZgloszenia
+    `;
+
+    const querySerwisanci = `
+        SELECT IFNULL(U.imieNazwisko, 'Brak (nieprzypisane)') as serwisant, COUNT(Z.id) as ilosc
+        FROM Zgloszenie Z
+        LEFT JOIN Uzytkownik U ON Z.serwisant_id = U.id
+        WHERE strftime('%m', Z.dataUtworzenia) = ? AND strftime('%Y', Z.dataUtworzenia) = ?
+        GROUP BY Z.serwisant_id
+    `;
+
+    db.all(queryStatusy, [miesiac, rok], (err, rowStatusy) => {
+        if (err) return res.status(500).json({ error: err.message });
+        
+        db.all(querySerwisanci, [miesiac, rok], (err, rowSerwisanci) => {
+            if (err) return res.status(500).json({ error: err.message });
+            
+            const total = rowStatusy.reduce((sum, row) => sum + row.ilosc, 0);
+            
+            res.json({ data: { total, szczegoly: rowStatusy, serwisanci: rowSerwisanci } });
+        });
+    });
+});
 app.listen(port, () => {
     console.log(`Serwer API działa na porcie ${port}`);
 });
